@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                   xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                   id="Definitions_OrderDiscountProcess"
+                   targetNamespace="http://camunda.org/schema/1.0/bpmn"
+                   exporter="Camunda Modeler"
+                   exporterVersion="5.x">
+
+  <bpmn:process id="Process_OrderDiscountFulfillment" name="Multi-Item Order Discount &amp; Fulfillment Orchestration" isExecutable="true">
+
+    <bpmn:startEvent id="StartEvent_1" name="Order Received">
+      <bpmn:outgoing>Flow_ToCalcDiscount</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:businessRuleTask id="Task_CalcDiscount" name="Calculate Total Discount"
+        camunda:decisionRef="calculate-discounts"
+        camunda:decisionRefBinding="latest"
+        camunda:mapDecisionResult="singleEntry"
+        camunda:resultVariable="totalDiscount">
+      <bpmn:incoming>Flow_ToCalcDiscount</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCalcFinal</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+
+    <bpmn:scriptTask id="Task_CalcFinal" name="Calculate Final Invoice Amount" scriptFormat="javascript">
+      <bpmn:incoming>Flow_ToCalcFinal</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToGateway</bpmn:outgoing>
+      <bpmn:script>finalAmount = cartValue * (1 - (totalDiscount / 100));</bpmn:script>
+    </bpmn:scriptTask>
+
+    <bpmn:exclusiveGateway id="Gateway_SignOff" name="Final Amount &gt;= 1000?">
+      <bpmn:incoming>Flow_ToGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToManagerSignoff</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToMergeDirect</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_ManagerSignoff" name="Manager Sign-off">
+      <bpmn:incoming>Flow_ToManagerSignoff</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToMergeFromSignoff</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Merge" name="Merge">
+      <bpmn:incoming>Flow_ToMergeDirect</bpmn:incoming>
+      <bpmn:incoming>Flow_ToMergeFromSignoff</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToSendWarehouse</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_SendWarehouse" name="Send Order to Warehouse"
+        camunda:type="external" camunda:topic="sendOrderToWarehouse">
+      <bpmn:incoming>Flow_ToSendWarehouse</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_1" name="Order Fulfilled">
+      <bpmn:incoming>Flow_ToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_ToCalcDiscount" sourceRef="StartEvent_1" targetRef="Task_CalcDiscount" />
+    <bpmn:sequenceFlow id="Flow_ToCalcFinal" sourceRef="Task_CalcDiscount" targetRef="Task_CalcFinal" />
+    <bpmn:sequenceFlow id="Flow_ToGateway" sourceRef="Task_CalcFinal" targetRef="Gateway_SignOff" />
+
+    <bpmn:sequenceFlow id="Flow_ToManagerSignoff" name="finalAmount &gt;= 1000" sourceRef="Gateway_SignOff" targetRef="Task_ManagerSignoff">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" language="feel">finalAmount &gt;= 1000</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_ToMergeDirect" name="finalAmount &lt; 1000" sourceRef="Gateway_SignOff" targetRef="Gateway_Merge">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" language="feel">finalAmount &lt; 1000</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_ToMergeFromSignoff" sourceRef="Task_ManagerSignoff" targetRef="Gateway_Merge" />
+    <bpmn:sequenceFlow id="Flow_ToSendWarehouse" sourceRef="Gateway_Merge" targetRef="Task_SendWarehouse" />
+    <bpmn:sequenceFlow id="Flow_ToEnd" sourceRef="Task_SendWarehouse" targetRef="EndEvent_1" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_OrderDiscountFulfillment">
+
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="200" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="130" y="243" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CalcDiscount_di" bpmnElement="Task_CalcDiscount">
+        <dc:Bounds x="240" y="178" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CalcFinal_di" bpmnElement="Task_CalcFinal">
+        <dc:Bounds x="390" y="178" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_SignOff_di" bpmnElement="Gateway_SignOff" isMarkerVisible="true">
+        <dc:Bounds x="540" y="193" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="524" y="163" width="82" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ManagerSignoff_di" bpmnElement="Task_ManagerSignoff">
+        <dc:Bounds x="650" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Merge_di" bpmnElement="Gateway_Merge" isMarkerVisible="true">
+        <dc:Bounds x="820" y="193" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendWarehouse_di" bpmnElement="Task_SendWarehouse">
+        <dc:Bounds x="930" y="178" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="1082" y="200" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1060" y="243" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_ToCalcDiscount_di" bpmnElement="Flow_ToCalcDiscount">
+        <di:waypoint x="188" y="218" />
+        <di:waypoint x="240" y="218" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToCalcFinal_di" bpmnElement="Flow_ToCalcFinal">
+        <di:waypoint x="340" y="218" />
+        <di:waypoint x="390" y="218" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToGateway_di" bpmnElement="Flow_ToGateway">
+        <di:waypoint x="490" y="218" />
+        <di:waypoint x="540" y="218" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToManagerSignoff_di" bpmnElement="Flow_ToManagerSignoff">
+        <di:waypoint x="565" y="193" />
+        <di:waypoint x="565" y="120" />
+        <di:waypoint x="650" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="572" y="150" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToMergeDirect_di" bpmnElement="Flow_ToMergeDirect">
+        <di:waypoint x="590" y="218" />
+        <di:waypoint x="820" y="218" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="670" y="196" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToMergeFromSignoff_di" bpmnElement="Flow_ToMergeFromSignoff">
+        <di:waypoint x="750" y="120" />
+        <di:waypoint x="845" y="120" />
+        <di:waypoint x="845" y="193" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToSendWarehouse_di" bpmnElement="Flow_ToSendWarehouse">
+        <di:waypoint x="870" y="218" />
+        <di:waypoint x="930" y="218" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToEnd_di" bpmnElement="Flow_ToEnd">
+        <di:waypoint x="1030" y="218" />
+        <di:waypoint x="1082" y="218" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

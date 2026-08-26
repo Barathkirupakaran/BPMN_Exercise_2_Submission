@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:camunda="http://camunda.org/schema/1.0/dmn"
+             xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+             xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+             id="Definitions_OrderDiscount"
+             name="OrderDiscountDefinitions"
+             namespace="http://camunda.org/schema/1.0/dmn"
+             exporter="Camunda Modeler"
+             exporterVersion="5.x">
+
+  <decision id="calculate-discounts" name="Calculate Total Discount">
+    <decisionTable id="DecisionTable_Discounts" hitPolicy="COLLECT" aggregation="SUM">
+
+      <input id="Input_CustomerTier" label="Customer Tier">
+        <inputExpression id="InputExpression_CustomerTier" typeRef="string">
+          <text>customerTier</text>
+        </inputExpression>
+      </input>
+
+      <input id="Input_CartValue" label="Cart Value">
+        <inputExpression id="InputExpression_CartValue" typeRef="double">
+          <text>cartValue</text>
+        </inputExpression>
+      </input>
+
+      <input id="Input_PromoCode" label="Promo Code">
+        <inputExpression id="InputExpression_PromoCode" typeRef="string">
+          <text>promoCode</text>
+        </inputExpression>
+      </input>
+
+      <output id="Output_DiscountPercent" label="Discount Percent" name="discountPercent" typeRef="integer" />
+
+      <!-- Rule 1: PREMIUM customer -> +10 -->
+      <rule id="Rule_1">
+        <inputEntry id="InputEntry_1_1">
+          <text>"PREMIUM"</text>
+        </inputEntry>
+        <inputEntry id="InputEntry_1_2">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="InputEntry_1_3">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="OutputEntry_1_1">
+          <text>10</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Rule 2: cartValue >= 500 -> +5 -->
+      <rule id="Rule_2">
+        <inputEntry id="InputEntry_2_1">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="InputEntry_2_2">
+          <text>&gt;= 500</text>
+        </inputEntry>
+        <inputEntry id="InputEntry_2_3">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="OutputEntry_2_1">
+          <text>5</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Rule 3: promoCode in (FESTIVE10, SPECIAL10) -> +10 -->
+      <rule id="Rule_3">
+        <inputEntry id="InputEntry_3_1">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="InputEntry_3_2">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="InputEntry_3_3">
+          <text>"FESTIVE10","SPECIAL10"</text>
+        </inputEntry>
+        <outputEntry id="OutputEntry_3_1">
+          <text>10</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Rule 4: Default - always matches -> +0 -->
+      <rule id="Rule_4">
+        <inputEntry id="InputEntry_4_1">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="InputEntry_4_2">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="InputEntry_4_3">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="OutputEntry_4_1">
+          <text>0</text>
+        </outputEntry>
+      </rule>
+
+    </decisionTable>
+  </decision>
+
+</definitions>
